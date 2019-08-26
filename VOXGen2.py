@@ -4,11 +4,6 @@ import os.path
 
 SOUND_DIR = 'vox2/'
 
-SOUND_SAMPLE = 11025
-SOUND_WIDTH = 1
-SOUND_CHANNELS = 1
-
-
 sentence = ''
 
 if len(sys.argv) > 1:
@@ -30,25 +25,18 @@ for i in sentence:
 
 print(accepted)
 
-splice = ""
+splice = []
 
 for i in accepted:
-    sound = wave.open(SOUND_DIR + i + '.wav')
-
-    SOUND_SAMPLE = sound.getframerate()
-    SOUND_WIDTH = sound.getsampwidth()
-    SOUND_CHANNELS = sound.getnchannels()
-
-    splice = splice + (sound.readframes(sound.getnframes()))
-
+    sound = wave.open(SOUND_DIR + i + '.wav', 'rb')
+    splice.append( [sound.getparams(), sound.readframes(sound.getnframes())] )
     sound.close()
 
 try:
-    out = wave.open('out.wav', 'w')
-    out.setnchannels(SOUND_CHANNELS)
-    out.setsampwidth(SOUND_WIDTH)
-    out.setframerate(SOUND_SAMPLE)
-    out.writeframesraw(splice)
+    out = wave.open('out.wav', 'wb')
+    out.setparams(splice[0][0])
+    for params,frames in splice:
+        out.writeframes(frames)
     out.close()
 except:
     print('FATAL: Failed to write to output file.')
