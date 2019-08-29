@@ -10,7 +10,7 @@ import geocoder
 SOUND_DIR = 'vox/'
 TALK_SPEED = 1
 TEMPERATURE_UNITS = "imperial"
-WEATHER_API_KEY = "72b736798c03abf3e203a8930b34f897"
+WEATHER_API_KEY = "<API_KEY_HERE>"
 
 def convertNumber(num):
     one = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
