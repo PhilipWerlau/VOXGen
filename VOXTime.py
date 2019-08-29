@@ -8,53 +8,73 @@ import pyaudio
 import geocoder
 
 SOUND_DIR = 'vox/'
+TALK_SPEED = 1
+TEMPERATURE_UNITS = "imperial"
+WEATHER_API_KEY = "72b736798c03abf3e203a8930b34f897"
 
 def convertNumber(num):
-    one = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
-    tenp = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
-    tenp2 = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
-    word = ''
+    one = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+    tenp = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen']
+    tenp2 = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
+    
+    numWord = ''
     numInt = int(num)
     numStr = str(numInt)
+
     leng = len(numStr)
     if leng == 1:
         if numInt == 0:
-            word = 'Zero'
+            numWord = 'zero'
         else:
-            word = one[numInt]
-    if leng == 2:
+            numWord = one[numInt]
+    elif leng == 2:
         if numStr[0] == '1':
-            word = tenp[int(numStr[1])]
+            numWord = tenp[int(numStr[1])]
         else:
             text = one[int(numStr[1])]
-            word = tenp2[int(numStr[0])]
-            word = word + " " + text
-    word = word.strip()
-    return word
+            numWord = tenp2[int(numStr[0])]
+            numWord += " " + text
+    return numWord.strip()
     
 
 currentHour = datetime.datetime.now().strftime("%H")
 currentMinute = datetime.datetime.now().strftime("%M")
 print(currentHour+":"+currentMinute)
+sentence = "doop Attention _comma the time is "
+sentence += convertNumber(currentHour) + " hundred hours and " 
+sentence += convertNumber(currentMinute) + " minutes"
 
-sentence = "doop the time is " + convertNumber(currentHour) + " hundred hours and " + convertNumber(currentMinute) + " minutes"
+try:
+    geo = geocoder.ip('me')
+    latlong = geo.latlng
 
-geo = geocoder.ip('me')
-location = geo.city+","+geo.country
+    weatherAPIURL = "http://api.openweathermap.org/data/2.5/weather"
+    weatherAPIURL += "?lat="+f"{latlong[0]:.2f}"
+    weatherAPIURL += "&lon="+f"{latlong[1]:.2f}"
+    weatherAPIURL += "&units="+TEMPERATURE_UNITS
+    weatherAPIURL += "&appid="+WEATHER_API_KEY
+    weatherJson = json.loads(requests.get(weatherAPIURL).content)
 
-weatherJson = json.loads(requests.get("http://api.openweathermap.org/data/2.5/weather?q=%s&units=imperial&appid=72b736798c03abf3e203a8930b34f897" % location).content)
-temperature = weatherJson['main']['temp']
-sentence += " _comma _comma _comma the topside temperature is " + convertNumber(str(int(temperature))) + " degrees fahrenheit"
+    temperature = weatherJson['main']['temp']
+    print(temperature)
+
+    sentence += " _period the topside temperature is "
+    sentence += convertNumber(str(temperature).split('.')[0]) 
+    sentence += " point " + convertNumber(str(temperature).split('.')[1][0])
+    sentence += " degrees fahrenheit"
+
+except:
+    print(latlong)
+    print(weatherAPIURL)
+    print("Connection error")
+    sentence += " _period bloop temperature service communication error"
 
 print(sentence)
 sentence = sentence.lower().split(' ')
 accepted = []
-
-
 for i in sentence:
     if os.path.isfile(SOUND_DIR + i + '.wav'):
         accepted.append(i)
-
 #print(accepted)
 
 splice = []
@@ -66,12 +86,10 @@ for i in accepted:
 pAudio = pyaudio.PyAudio()
 stream = pAudio.open(format = pAudio.get_format_from_width(sound.getsampwidth()),
                      channels = sound.getnchannels(),
-                     rate = sound.getframerate(),
+                     rate = int(sound.getframerate()*TALK_SPEED),
                      output = True)
-
 for params,frames in splice:
     stream.write(frames)
-
 stream.stop_stream()  
 stream.close()   
 pAudio.terminate()
@@ -83,4 +101,4 @@ try:
         out.writeframes(frames)
     out.close()
 except:
-    print('FATAL: Failed to write to output file.')
+    print("FATAL: Failed to write to output file.")
